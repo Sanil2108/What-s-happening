@@ -114,9 +114,93 @@ public class MainActivity extends AppCompatActivity {
                 NewsResponse.ArticleResponse[] articleResponse=news.getArticles();
                 CustomAdapter customAdapter=new CustomAdapter(context, articleResponse);
 
-                ListView listView=findViewById(R.id.main_news_list);
-                listView.setAdapter(customAdapter);
-//                setListViewHeightBasedOnChildren(listView);
+                LinearLayout linearLayout=findViewById(R.id.main_news_list);
+                final NewsResponse.ArticleResponse[] articleResponses=news.getArticles();
+                boolean[] bookmarked=new boolean[articleResponses.length];
+                newsHandler=new NewsHandler(context);
+                for(int i=0;i<bookmarked.length;i++){
+                    bookmarked[i]=newsHandler.doesNewsExist(articleResponses[i].getUrl());
+                }
+                for(int position=0;position<articleResponses.length;position++){
+//                    NewsResponse.ArticleResponse a:articleResponses
+                    View v=getLayoutInflater().inflate(R.layout.main_row_layout, null);
+                    linearLayout.addView(v);
+                    final int pos=position;
+                    View.OnClickListener onClickListener=new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            Intent intent=new Intent(Intent.ACTION_VIEW, Uri.parse(articleResponses[pos].getUrl()));
+                            context.startActivity(intent);
+                        }
+                    };
+                    final TextView titleTextView=v.findViewById(R.id.main_row_layout_title);
+                    final ImageView imageView=v.findViewById(R.id.main_row_layout_image);
+                    TextView descriptionTextView=v.findViewById(R.id.main_row_layout_description);
+
+                    titleTextView.setOnClickListener(onClickListener);
+                    descriptionTextView.setOnClickListener(onClickListener);
+                    imageView.setOnClickListener(onClickListener);
+
+                    titleTextView.setText((articleResponses[position].getTitle()==null)?"": articleResponses[position].getTitle());
+                    descriptionTextView.setText((articleResponses[position].getDescription()==null)?"":articleResponses[position].getDescription());
+                    final Handler handler=new Handler(Looper.getMainLooper()){
+                        @Override
+                        public void handleMessage(Message msg) {
+                            imageView.setImageBitmap((Bitmap)msg.obj);
+                        }
+                    };
+                    Thread t=new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            try {
+                                Bitmap bmp = BitmapFactory.decodeStream(new URL(articleResponses[pos].getUrlToImage()).openStream());
+                                Message message=new Message();
+                                message.obj=bmp;
+                                handler.sendMessage(message);
+                            }catch (Exception e){
+                                e.printStackTrace();
+                            }
+                        }
+                    });
+                    t.start();
+
+                    final ImageView bookmarkImage=v.findViewById(R.id.bookmark_button_activity_main_row);
+                    if(bookmarked[position]){
+                        Bitmap bookmarked2 = BitmapFactory.decodeResource(context.getResources(), R.drawable.bookmarked);
+                        bookmarkImage.setImageBitmap(bookmarked2);
+                    }else {
+                        bookmarkImage.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                Bitmap bookmarked = BitmapFactory.decodeResource(context.getResources(), R.drawable.bookmarked);
+                                bookmarkImage.setImageBitmap(bookmarked);
+
+                                newsHandler.addNews(
+                                        new News(
+                                                articleResponses[pos].getTitle(),
+                                                articleResponses[pos].getDescription(),
+                                                articleResponses[pos].getUrlToImage(),
+                                                articleResponses[pos].getUrl()
+                                        )
+                                );
+                            }
+                        });
+                    }
+
+                    TextView share=v.findViewById(R.id.share_button_activity_main);
+                    share.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            Intent intent=new Intent(Intent.ACTION_SEND);
+                            intent.setType("text/plain");
+                            String s="Check out what is happening - \n"+articleResponses[pos].getTitle()+"\n Learn more - "+articleResponses[pos].getUrl()
+                                    +"\n\n Sent via What's happening android app - your window to the world";
+                            intent.putExtra(Intent.EXTRA_SUBJECT, "What's happening");
+                            intent.putExtra(Intent.EXTRA_TEXT, s);
+                            context.startActivity(Intent.createChooser(intent, "Share via"));
+                        }
+                    });
+                }
             }
         };
 
@@ -166,23 +250,27 @@ public class MainActivity extends AppCompatActivity {
             public boolean onKey(View v, int keyCode, KeyEvent event) {
                 if(keyCode==KeyEvent.KEYCODE_ENTER){
                     q=searchText.getText().toString();
-                    updateNews();
-                    searchText.clearFocus();
-                    final VideoView loadingVideoView=findViewById(R.id.loading_activity_main);
-                    Uri video = Uri.parse("android.resource://" + getPackageName() + "/"
-                            + R.raw.loading);
-                    ViewGroup.LayoutParams layoutParams=loadingVideoView.getLayoutParams();
-                    layoutParams.height=80;
-                    layoutParams.width=80;
-                    loadingVideoView.setLayoutParams(layoutParams);
-                    loadingVideoView.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
-                        @Override
-                        public void onPrepared(MediaPlayer mp) {
-                            mp.setLooping(true);
-                        }
-                    });
-                    loadingVideoView.setVideoURI(video);
-                    loadingVideoView.start();
+                    Intent intent=new Intent(context, MainActivity.class);
+                    intent.putExtra(QUERY_KEY, q);
+                    intent.putExtra(PAGE_COUNT_KEY, 1);
+                    startActivity(intent);
+//                    updateNews();
+//                    searchText.clearFocus();
+//                    final VideoView loadingVideoView=findViewById(R.id.loading_activity_main);
+//                    Uri video = Uri.parse("android.resource://" + getPackageName() + "/"
+//                            + R.raw.loading);
+//                    ViewGroup.LayoutParams layoutParams=loadingVideoView.getLayoutParams();
+//                    layoutParams.height=80;
+//                    layoutParams.width=80;
+//                    loadingVideoView.setLayoutParams(layoutParams);
+//                    loadingVideoView.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
+//                        @Override
+//                        public void onPrepared(MediaPlayer mp) {
+//                            mp.setLooping(true);
+//                        }
+//                    });
+//                    loadingVideoView.setVideoURI(video);
+//                    loadingVideoView.start();
                     return true;
                 }
                 return false;
@@ -329,81 +417,81 @@ class CustomAdapter extends ArrayAdapter<NewsResponse.ArticleResponse>{
     public View getView(final int position, @Nullable View convertView, @NonNull ViewGroup parent) {
         LayoutInflater layoutInflater=(LayoutInflater)context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         View v=layoutInflater.inflate(R.layout.main_row_layout, parent, false);
-        View.OnClickListener onClickListener=new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent=new Intent(Intent.ACTION_VIEW, Uri.parse(articleResponses[position].getUrl()));
-                context.startActivity(intent);
-            }
-        };
-        final TextView titleTextView=v.findViewById(R.id.main_row_layout_title);
-        final ImageView imageView=v.findViewById(R.id.main_row_layout_image);
-        TextView descriptionTextView=v.findViewById(R.id.main_row_layout_description);
-
-        titleTextView.setOnClickListener(onClickListener);
-        descriptionTextView.setOnClickListener(onClickListener);
-        imageView.setOnClickListener(onClickListener);
-
-        titleTextView.setText(articleResponses[position].getTitle());
-        descriptionTextView.setText(articleResponses[position].getDescription());
-        final Handler handler=new Handler(Looper.getMainLooper()){
-            @Override
-            public void handleMessage(Message msg) {
-                imageView.setImageBitmap((Bitmap)msg.obj);
-            }
-        };
-        final int pos=position;
-        Thread t=new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    Bitmap bmp = BitmapFactory.decodeStream(new URL(articleResponses[pos].getUrlToImage()).openStream());
-                    Message message=new Message();
-                    message.obj=bmp;
-                    handler.sendMessage(message);
-                }catch (Exception e){
-                    e.printStackTrace();
-                }
-            }
-        });
-        t.start();
-
-        final ImageView bookmarkImage=v.findViewById(R.id.bookmark_button_activity_main_row);
-        if(bookmarked[position]){
-            Bitmap bookmarked = BitmapFactory.decodeResource(context.getResources(), R.drawable.bookmarked);
-            bookmarkImage.setImageBitmap(bookmarked);
-        }else {
-            bookmarkImage.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    Bitmap bookmarked = BitmapFactory.decodeResource(context.getResources(), R.drawable.bookmarked);
-                    bookmarkImage.setImageBitmap(bookmarked);
-
-                    newsHandler.addNews(
-                            new News(
-                                    articleResponses[position].getTitle(),
-                                    articleResponses[position].getDescription(),
-                                    articleResponses[position].getUrlToImage(),
-                                    articleResponses[position].getUrl()
-                            )
-                    );
-                }
-            });
-        }
-
-        TextView share=v.findViewById(R.id.share_button_activity_main);
-        share.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent=new Intent(Intent.ACTION_SEND);
-                intent.setType("text/plain");
-                String s="Check out what is happening - \n"+articleResponses[position].getTitle()+"\n Learn more - "+articleResponses[position].getUrl()
-                        +"\n\n Sent via What's happening android app - your window to the world";
-                intent.putExtra(Intent.EXTRA_SUBJECT, "What's happening");
-                intent.putExtra(Intent.EXTRA_TEXT, s);
-                context.startActivity(Intent.createChooser(intent, "Share via"));
-            }
-        });
+//        View.OnClickListener onClickListener=new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                Intent intent=new Intent(Intent.ACTION_VIEW, Uri.parse(articleResponses[position].getUrl()));
+//                context.startActivity(intent);
+//            }
+//        };
+//        final TextView titleTextView=v.findViewById(R.id.main_row_layout_title);
+//        final ImageView imageView=v.findViewById(R.id.main_row_layout_image);
+//        TextView descriptionTextView=v.findViewById(R.id.main_row_layout_description);
+//
+//        titleTextView.setOnClickListener(onClickListener);
+//        descriptionTextView.setOnClickListener(onClickListener);
+//        imageView.setOnClickListener(onClickListener);
+//
+//        titleTextView.setText(articleResponses[position].getTitle());
+//        descriptionTextView.setText(articleResponses[position].getDescription());
+//        final Handler handler=new Handler(Looper.getMainLooper()){
+//            @Override
+//            public void handleMessage(Message msg) {
+//                imageView.setImageBitmap((Bitmap)msg.obj);
+//            }
+//        };
+//        final int pos=position;
+//        Thread t=new Thread(new Runnable() {
+//            @Override
+//            public void run() {
+//                try {
+//                    Bitmap bmp = BitmapFactory.decodeStream(new URL(articleResponses[pos].getUrlToImage()).openStream());
+//                    Message message=new Message();
+//                    message.obj=bmp;
+//                    handler.sendMessage(message);
+//                }catch (Exception e){
+//                    e.printStackTrace();
+//                }
+//            }
+//        });
+//        t.start();
+//
+//        final ImageView bookmarkImage=v.findViewById(R.id.bookmark_button_activity_main_row);
+//        if(bookmarked[position]){
+//            Bitmap bookmarked = BitmapFactory.decodeResource(context.getResources(), R.drawable.bookmarked);
+//            bookmarkImage.setImageBitmap(bookmarked);
+//        }else {
+//            bookmarkImage.setOnClickListener(new View.OnClickListener() {
+//                @Override
+//                public void onClick(View v) {
+//                    Bitmap bookmarked = BitmapFactory.decodeResource(context.getResources(), R.drawable.bookmarked);
+//                    bookmarkImage.setImageBitmap(bookmarked);
+//
+//                    newsHandler.addNews(
+//                            new News(
+//                                    articleResponses[position].getTitle(),
+//                                    articleResponses[position].getDescription(),
+//                                    articleResponses[position].getUrlToImage(),
+//                                    articleResponses[position].getUrl()
+//                            )
+//                    );
+//                }
+//            });
+//        }
+//
+//        TextView share=v.findViewById(R.id.share_button_activity_main);
+//        share.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                Intent intent=new Intent(Intent.ACTION_SEND);
+//                intent.setType("text/plain");
+//                String s="Check out what is happening - \n"+articleResponses[position].getTitle()+"\n Learn more - "+articleResponses[position].getUrl()
+//                        +"\n\n Sent via What's happening android app - your window to the world";
+//                intent.putExtra(Intent.EXTRA_SUBJECT, "What's happening");
+//                intent.putExtra(Intent.EXTRA_TEXT, s);
+//                context.startActivity(Intent.createChooser(intent, "Share via"));
+//            }
+//        });
         return v;
     }
 }
