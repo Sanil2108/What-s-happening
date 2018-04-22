@@ -20,7 +20,7 @@ import java.util.Date;
 public class NetworkCommunicationHandler {
     private static final String TAG="NETWORK_COMMUNICATION";
     private static String TEMP_COUNTRY="us";
-    private static String URL="https://newsapi.org/v2/";
+    private static String URL="http://newsapi.org/v2/";
     private static String API_KEY="d9157c5d499b4d8cb6138354c90253f8";
 
     public static String getURL(String init, String[] keys, String[] values){
