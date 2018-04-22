@@ -97,7 +97,6 @@
                         android:maxLines="1"
                         android:layout_height="match_parent"
                         style="?android:attr/textViewStyle"
-                        android:text="Syria"
                         android:layout_weight="9"
                         android:background="@null"
                         android:textSize="16sp"
@@ -150,7 +149,7 @@
                         <TextView
                             android:id="@+id/from_time_textview_activity_main"
                             android:layout_weight="0"
-                            android:text="18-04-2016"
+                            android:text=""
                             android:orientation="horizontal"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"/>
@@ -168,7 +167,6 @@
                         android:layout_height="28dp">
 
                         <TextView
-                            android:id="@+id/to_time_textview_activity_main"
                             android:layout_marginLeft="10dp"
                             android:layout_weight="1"
                             android:layout_gravity="right"
@@ -179,8 +177,9 @@
 
 
                         <TextView
+                            android:id="@+id/to_time_textview_activity_main"
                             android:layout_weight="0"
-                            android:text="18-04-2016"
+                            android:text=""
                             android:orientation="horizontal"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content">

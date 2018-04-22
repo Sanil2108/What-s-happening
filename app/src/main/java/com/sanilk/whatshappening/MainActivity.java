@@ -60,6 +60,8 @@ public class MainActivity extends AppCompatActivity {
     int pageCount;
     final static String PAGE_COUNT_KEY="PAGE_COUNT";
     final static String QUERY_KEY="QUERY";
+    final static String FROM_KEY="FROM";
+    final static String TO_KEY="TO";
 
 //    private static final int MESSAGE_UPDATE_LIST=1;
 
@@ -87,6 +89,12 @@ public class MainActivity extends AppCompatActivity {
             searchingFromQuery=false;
         }
 
+        if(getIntent().hasExtra(FROM_KEY)){
+            from=getIntent().getStringExtra(FROM_KEY);
+        }
+        if(getIntent().hasExtra(TO_KEY)){
+            to=getIntent().getStringExtra(TO_KEY);
+        }
         if(getIntent().hasExtra(QUERY_KEY)){
             q=getIntent().getStringExtra(QUERY_KEY);
         }
@@ -238,6 +246,8 @@ public class MainActivity extends AppCompatActivity {
                     filterLinearLayout.setVisibility(View.VISIBLE);
                 }else{
                     filterLinearLayout.setVisibility(View.GONE);
+                    from=null;
+                    to=null;
                 }
             }
         });
@@ -252,6 +262,12 @@ public class MainActivity extends AppCompatActivity {
                     q=searchText.getText().toString();
                     Intent intent=new Intent(context, MainActivity.class);
                     intent.putExtra(QUERY_KEY, q);
+                    if(from!=null && from!="") {
+                        intent.putExtra(FROM_KEY, from);
+                    }
+                    if(to!=null && to!="") {
+                        intent.putExtra(TO_KEY, to);
+                    }
                     intent.putExtra(PAGE_COUNT_KEY, 1);
                     startActivity(intent);
 //                    updateNews();
@@ -284,7 +300,15 @@ public class MainActivity extends AppCompatActivity {
         final DatePickerDialog.OnDateSetListener fromDateSetListener=new DatePickerDialog.OnDateSetListener() {
             @Override
             public void onDateSet(DatePicker view, int year, int month, int dayOfMonth) {
-                String date=dayOfMonth+"-"+month+"-"+year;
+                month+=1;
+                String y=year+"", m=month+"", d=dayOfMonth+"";
+                if(m.length()==1){
+                    m="0"+m;
+                }
+                if(d.length()==1){
+                    d="0"+d;
+                }
+                String date=y+"-"+m+"-"+d;
                 fromTextView.setText(date);
 
                 q=searchText.getText().toString();
@@ -304,7 +328,15 @@ public class MainActivity extends AppCompatActivity {
         final DatePickerDialog.OnDateSetListener toDateSetListener=new DatePickerDialog.OnDateSetListener() {
             @Override
             public void onDateSet(DatePicker view, int year, int month, int dayOfMonth) {
-                String date=dayOfMonth+"-"+month+"-"+year;
+                month+=1;
+                String y=year+"", m=month+"", d=dayOfMonth+"";
+                if(m.length()==1){
+                    m="0"+m;
+                }
+                if(d.length()==1){
+                    d="0"+d;
+                }
+                String date=y+"-"+m+"-"+d;
                 toTextView.setText(date);
 
                 q=searchText.getText().toString();
@@ -319,27 +351,6 @@ public class MainActivity extends AppCompatActivity {
                         myCalendar.get(Calendar.MONTH), myCalendar.get(Calendar.DAY_OF_MONTH)).show();
             }
         });
-    }
-
-    public static void setListViewHeightBasedOnChildren(ListView listView) {
-        ListAdapter listAdapter = listView.getAdapter();
-        if (listAdapter == null)
-            return;
-
-        int desiredWidth = View.MeasureSpec.makeMeasureSpec(listView.getWidth(), View.MeasureSpec.UNSPECIFIED);
-        int totalHeight = 0;
-        View view = null;
-        for (int i = 0; i < listAdapter.getCount(); i++) {
-            view = listAdapter.getView(i, view, listView);
-            if (i == 0)
-                view.setLayoutParams(new ViewGroup.LayoutParams(desiredWidth, ViewGroup.LayoutParams.WRAP_CONTENT));
-
-            view.measure(desiredWidth, View.MeasureSpec.UNSPECIFIED);
-            totalHeight += view.getMeasuredHeight();
-        }
-        ViewGroup.LayoutParams params = listView.getLayoutParams();
-        params.height = totalHeight + ((listView.getDividerHeight()+10) * (listAdapter.getCount() - 1));
-        listView.setLayoutParams(params);
     }
 
     public void updateNews(){
